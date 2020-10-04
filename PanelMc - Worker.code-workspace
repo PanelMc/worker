@@ -1,0 +1,41 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"[go]": {
+			"editor.defaultFormatter": "golang.go",
+			"editor.formatOnSave": true,
+			"editor.codeActionsOnSave": {
+				"source.organizeImports": true,
+			},
+			
+			// Optional: Disable snippets, as they conflict with completion ranking.
+			// "editor.snippetSuggestions": "none",
+		},
+		"gopls": {
+			 // Add parameter placeholders when completing a function.
+			"usePlaceholders": true,
+		
+			// If true, enable additional analyses with staticcheck.
+			// Warning: This will significantly increase memory usage.
+			"staticcheck": false,
+		},
+		"go.autocompleteUnimportedPackages": true,
+		"go.useCodeSnippetsOnFunctionSuggestWithoutType": true,
+		"go.liveErrors": {
+			"enabled": true,
+			"delay": 500
+		},
+		"go.formatTool": "goimports",
+		"go.lintOnSave": "file",
+		"go.useLanguageServer": true,
+		"git.autofetch": true,
+		"go.buildOnSave": "off",
+		"files.watcherExclude": {
+			"**/vendor/**": true
+		},
+	}
+}
