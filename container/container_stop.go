@@ -1,17 +1,19 @@
-package worker
+package container
 
 import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/PanelMc/worker"
 )
 
-func (c *container) Stop() error {
+func (c *dockerContainer) Stop() error {
 	c.Logger().Debug("Stopping the server...")
 	
-	if c.status == StatusStopping {
+	if c.status == worker.StatusStopping {
 		return fmt.Errorf("Server already shutting down. Current status: %s", c.status)
-	} else if c.status == StatusStopped {
+	} else if c.status == worker.StatusStopped {
 		return fmt.Errorf("Server already stopped. Current status: %s", c.status)
 	}
 

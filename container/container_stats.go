@@ -1,4 +1,4 @@
-package worker
+package container
 
 import (
 	"context"
@@ -7,19 +7,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PanelMc/worker"
 	"github.com/docker/docker/api/types"
 )
 
-func (c *container) Stats() (ContainerStats, error) {
+func (c *dockerContainer) Stats() (worker.ContainerStats, error) {
 	stats, err := c.stats(false, time.Millisecond*100)
 	if err != nil {
-		return ContainerStats{}, err
+		return worker.ContainerStats{}, err
 	}
 
 	return *<-stats, nil
 }
 
-func (c *container) StatsChan() (<-chan *ContainerStats, error) {
+func (c *dockerContainer) StatsChan() (<-chan *worker.ContainerStats, error) {
 	if c.statsChan == nil {
 		stats, err := c.stats(true, time.Second*1)
 		if err != nil {
@@ -32,13 +33,13 @@ func (c *container) StatsChan() (<-chan *ContainerStats, error) {
 	return c.statsChan, nil
 }
 
-func (c *container) stats(stream bool, delay time.Duration) (<-chan *ContainerStats, error) {
+func (c *dockerContainer) stats(stream bool, delay time.Duration) (<-chan *worker.ContainerStats, error) {
 	stats, err := c.client.ContainerStats(context.TODO(), c.ContainerID, false)
 	if err != nil {
 		return nil, err
 	}
 
-	statsChan := make(chan *ContainerStats)
+	statsChan := make(chan *worker.ContainerStats)
 
 	go func() {
 		defer func() {
@@ -76,7 +77,7 @@ func (c *container) stats(stream bool, delay time.Duration) (<-chan *ContainerSt
 	return statsChan, nil
 }
 
-func mapStats(daemonOSType string, v *types.StatsJSON) *ContainerStats {
+func mapStats(daemonOSType string, v *types.StatsJSON) *worker.ContainerStats {
 	var cpuPercent, memPerc float64
 	var blkRead, blkWrite, mem, memLimit uint64
 
@@ -98,7 +99,7 @@ func mapStats(daemonOSType string, v *types.StatsJSON) *ContainerStats {
 	}
 	netRx, netTx := calculateNetwork(v.Networks)
 
-	return &ContainerStats{
+	return &worker.ContainerStats{
 		CPUPercentage:    cpuPercent,
 		Memory:           mem,
 		MemoryPercentage: memPerc,

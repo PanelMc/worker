@@ -1,16 +1,17 @@
-package worker
+package container
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/PanelMc/worker"
 	"github.com/docker/docker/api/types"
 )
 
-func (c *container) Start() error {
+func (c *dockerContainer) Start() error {
 	c.logger.Debug("Starting the container...")
 
-	if c.status != StatusStopped {
+	if c.status != worker.StatusStopped {
 		return fmt.Errorf("Server already running. Current status: %s", c.status)
 	}
 
@@ -19,7 +20,7 @@ func (c *container) Start() error {
 		return err
 	}
 
-	c.status = StatusRunning
+	c.status = worker.StatusRunning
 	c.Logger().Info("Container started.")
 	return nil
 }
