@@ -8,8 +8,6 @@ import (
 
 // InitializeLogger initializes the global logger with the default configuration
 func InitializeLogger() {
-	logrus.SetFormatter(&logrus.TextFormatter{})
-
 	logrus.SetFormatter(&nested.Formatter{
 		HideKeys: true,
 		NoColors: true,

@@ -16,6 +16,8 @@ type Container interface {
 	Stats() (ContainerStats, error)
 	// StatsChan returns a channel that receives the container stats
 	StatsChan() (<-chan *ContainerStats, error)
+	// Status says whether the server is running or not
+	Status() Status
 
 	Logger() *logrus.Logger
 }

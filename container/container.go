@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -31,9 +32,9 @@ func (c *dockerContainer) Logger() *logrus.Logger {
 	return c.logger
 }
 
-// Ensure the container struct implements the Container
-// interface. If not, the program won't compile.
-var _ worker.Container = &dockerContainer{}
+func (c *dockerContainer) Status() worker.Status {
+	return c.status
+}
 
 var logger = logrus.WithField("context", "container").Logger
 
@@ -78,13 +79,14 @@ func prepare(ctx context.Context, container *dockerContainer, opts *worker.Conta
 	default:
 	}
 
+	container.logger.Debugln("Checking image for updates...")
 	progress, err := pullImage(ctx, container, opts.Image)
 	if err != nil {
-		return err
+		return fmt.Errorf("image pull error for '%s': %w", opts.Image, err)
 	}
 
 	var p *imagePullEvent
-	var ok bool
+	var ok bool = true
 	for ok {
 		select {
 		case <-ctx.Done():
@@ -94,6 +96,11 @@ func prepare(ctx context.Context, container *dockerContainer, opts *worker.Conta
 				container.Logger().Debugf("Pulling progress: %d/%d - %s", p.ProgressDetail.Current, p.ProgressDetail.Total, p.Status)
 			}
 		}
+	}
+
+	// Return error from last message if present
+	if p != nil && p.Error != "" {
+		return errors.New(p.Error)
 	}
 
 	return nil
