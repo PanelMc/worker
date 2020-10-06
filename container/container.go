@@ -18,7 +18,7 @@ import (
 type dockerContainer struct {
 	sync.Mutex
 
-	ServerID    string
+	ContainerName    string
 	ContainerID string
 	status      worker.Status
 
@@ -39,15 +39,15 @@ func (c *dockerContainer) Status() worker.Status {
 var logger = logrus.WithField("context", "container").Logger
 
 // NewDockerContainer creates a new docker container using the given options
-func NewDockerContainer(serverID string, opts worker.ContainerOptions) (worker.Container, error) {
+func NewDockerContainer(opts worker.ContainerOptions) (worker.Container, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, err
 	}
 
-	logger := logrus.WithField("container", serverID).Logger
+	logger := logrus.WithField("container", opts.ContainerName).Logger
 	container := &dockerContainer{
-		ServerID: serverID,
+		ContainerName: opts.ContainerName,
 		status:   worker.StatusStopped,
 		client:   cli,
 		logger:   logger,
@@ -59,8 +59,8 @@ func NewDockerContainer(serverID string, opts worker.ContainerOptions) (worker.C
 		return nil, err
 	}
 
-	containerConfig := parseContainerConfig(serverID, &opts)
-	containerHostConfig := parseHostConfig(serverID, &opts)
+	containerConfig := parseContainerConfig(opts.ContainerName, &opts)
+	containerHostConfig := parseHostConfig(opts.ContainerName, &opts)
 
 	resContainer, err := cli.ContainerCreate(ctx, &containerConfig, &containerHostConfig, nil, containerConfig.Hostname)
 	if err != nil {
@@ -151,7 +151,7 @@ func parseHostConfig(serverID string, opts *worker.ContainerOptions) container.H
 	// point to `/data` volume
 	path += ":/data"
 
-	memory, err := bytefmt.ToBytes(opts.Ram)
+	memory, err := bytefmt.ToBytes(opts.RAM)
 	if err != nil {
 		logrus.Error("Failed to read server RAM, using default(1 Gigabyte).")
 		memory = 1073741824 // 1GB Default

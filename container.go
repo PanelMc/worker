@@ -18,24 +18,37 @@ type Container interface {
 	StatsChan() (<-chan *ContainerStats, error)
 	// Status says whether the server is running or not
 	Status() Status
-
+	// Logger returns the logger used by the server
+	// logs sent here, will be redirected to the container stdout
 	Logger() *logrus.Logger
 }
 
+// ContainerStats holds the stats relative to a container at a point in time
 type ContainerStats struct {
-	CPUPercentage    float64 `json:"cpu_percentage"`
+	// Percentage of CPU usage, sum of all cores
+	CPUPercentage float64 `json:"cpu_percentage"`
+	// Percentage of RAM usage
 	MemoryPercentage float64 `json:"memory_percentage"`
-	Memory           uint64  `json:"memory"`
-	MemoryLimit      uint64  `json:"memory_limit"`
-	NetworkDownload  uint64  `json:"network_download"`
-	NetworkUpload    uint64  `json:"network_upload"`
-	DiscRead         uint64  `json:"disc_read"`
-	DiscWrite        uint64  `json:"disc_write"`
+	// RAM usage in bytes
+	Memory uint64 `json:"memory"`
+	// Max available RAM in bytes
+	MemoryLimit uint64 `json:"memory_limit"`
+	// Total network download bytes, since start
+	NetworkDownload uint64 `json:"network_download"`
+	// Total network upload bytes, since start
+	NetworkUpload uint64 `json:"network_upload"`
+	// Disc read
+	// TODO investigate meaning of returned values
+	DiscRead uint64 `json:"disc_read"`
+	// Disc write
+	DiscWrite uint64 `json:"disc_write"`
 }
 
+// ContainerOptions holds the options used to create a new container
 type ContainerOptions struct {
-	Image string `json:"image,omitempty"`
-	Ram   string `json:"ram,omitempty"`
-	Swap  string `json:"swap,omitempty"`
-	Ports []int  `json:"ports,omitempty"`
+	ContainerName string `json:"container_name,omitempty"`
+	Image         string `json:"image,omitempty"`
+	RAM           string `json:"ram,omitempty"`
+	Swap          string `json:"swap,omitempty"`
+	Ports         []int  `json:"ports,omitempty"`
 }

@@ -12,7 +12,7 @@ type Server interface {
 }
 
 type server struct {
-	container *Container
+	container Container
 }
 
 // Status represents whether the server is running or not.
