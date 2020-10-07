@@ -7,8 +7,6 @@ type Server interface {
 	Stop() error
 
 	SendCommand(cmd string) error
-
-	Ping() (int, error)
 }
 
 type server struct {
@@ -30,3 +28,8 @@ const (
 	// StatusStopping indicates the server is stopping, but not yet stopeed.
 	StatusStopping Status = "stopping"
 )
+
+// NewServer initializes a new Server instance based on the provided Container.
+func NewServer(container Container) (Server, error) {
+	return &server{container}, nil
+}
