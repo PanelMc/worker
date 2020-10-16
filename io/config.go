@@ -8,26 +8,22 @@ import (
 	"strings"
 )
 
-func parseRecoverErr(r interface{}) (err error) {
-	switch x := r.(type) {
-	case string:
-		err = fmt.Errorf(x)
-	case error:
-		err = x
-	default:
-		err = fmt.Errorf("unknown error from panic: %s", x)
+func parseRecoverErr(err *error) {
+	if r := recover(); r != nil {
+		switch x := r.(type) {
+		case string:
+			*err = fmt.Errorf(x)
+		case error:
+			*err = x
+		default:
+			*err = fmt.Errorf("unknown error from panic: %s", x)
+		}
 	}
-
-	return
 }
 
 // SaveConfig saves the provided config into the file with the given name
 func SaveConfig(cfg interface{}, file string) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = parseRecoverErr(r)
-		}
-	}()
+	defer parseRecoverErr(&err)
 
 	file = validateFileName(file)
 
@@ -41,11 +37,7 @@ func SaveConfig(cfg interface{}, file string) (err error) {
 
 // LoadConfig loads a config from the given file, into the interface
 func LoadConfig(file string, cfg interface{}) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = parseRecoverErr(r)
-		}
-	}()
+	defer parseRecoverErr(&err)
 
 	file = validateFileName(file)
 	src, err := ioutil.ReadFile(file)
