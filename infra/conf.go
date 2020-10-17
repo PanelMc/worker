@@ -23,7 +23,38 @@ func InitializeConfig() (cfg Config, err error) {
 
 	err = io.LoadConfig("config.hcl", &c)
 	if err != nil {
-		return
+		if !os.IsNotExist(err) {
+			return
+		}
+
+		err = io.SaveConfig(config{
+			Server: []struct {
+				Binds []struct {
+					HostDir string "hcl:\"host_dir\""
+					Volume  string "hcl:\"volume\""
+				} "hcl:\"bind,block\""
+			}{
+				{
+					Binds: []struct {
+						HostDir string "hcl:\"host_dir\""
+						Volume  string "hcl:\"volume\""
+					}{
+						{
+							HostDir: "/etc/worker/%s/data/",
+							Volume:  "/data",
+						},
+					},
+				},
+			},
+			PresetsFolder:     "./presets/",
+			FilePermissions:   644,
+			FolderPermissions: 744,
+		}, "config.hcl")
+		if err != nil {
+			return
+		}
+
+		return InitializeConfig()
 	}
 
 	bindsLength := 0
@@ -76,9 +107,9 @@ type Config struct {
 	Server ServerConfig
 
 	// PresetsFolder defines the folder to be used for server preset files.
-	PresetsFolder     string
+	PresetsFolder string
 	// Permission used when creating a new file. e.g. configuration files
-	FilePermissions   os.FileMode
+	FilePermissions os.FileMode
 	// Permission used when creating a new folder
 	FolderPermissions os.FileMode
 }
@@ -94,5 +125,5 @@ type ServerBindConfig struct {
 	// HostDir defines where to bind the volume on the host machine.
 	HostDir string
 	// Volume defines the volume to be binded.
-	Volume  string
+	Volume string
 }
