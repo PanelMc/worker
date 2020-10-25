@@ -14,7 +14,7 @@ func Run() (err error) {
 	if err != nil {
 		return
 	}
-	fmt.Printf("Config: %v\n", cfg)
+	fmt.Printf("Config: %#v\n", cfg)
 
 	return
 }

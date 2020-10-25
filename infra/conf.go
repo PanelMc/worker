@@ -28,21 +28,19 @@ func InitializeConfig() (cfg Config, err error) {
 		}
 
 		err = io.SaveConfig(config{
-			Server: []struct {
+			Server: &struct {
 				Binds []struct {
 					HostDir string "hcl:\"host_dir\""
 					Volume  string "hcl:\"volume\""
 				} "hcl:\"bind,block\""
 			}{
-				{
-					Binds: []struct {
-						HostDir string "hcl:\"host_dir\""
-						Volume  string "hcl:\"volume\""
-					}{
-						{
-							HostDir: "/etc/worker/%s/data/",
-							Volume:  "/data",
-						},
+				Binds: []struct {
+					HostDir string "hcl:\"host_dir\""
+					Volume  string "hcl:\"volume\""
+				}{
+					{
+						HostDir: "/etc/worker/%s/data/",
+						Volume:  "/data",
 					},
 				},
 			},
@@ -57,30 +55,28 @@ func InitializeConfig() (cfg Config, err error) {
 		return InitializeConfig()
 	}
 
-	bindsLength := 0
-	if len(c.Server) > 0 {
-		bindsLength = len(c.Server[0].Binds)
+	var serverConfig *ServerConfig
+	if c.Server != nil {
+		serverConfig = &ServerConfig{
+			Binds: make([]ServerBindConfig, len(c.Server.Binds)),
+		}
 	}
 
 	cfg = Config{
-		Server: ServerConfig{
-			Binds: make([]ServerBindConfig, bindsLength),
-		},
+		Server: serverConfig,
 
 		PresetsFolder:     c.PresetsFolder,
 		FilePermissions:   c.FilePermissions,
 		FolderPermissions: c.FolderPermissions,
 	}
 
-	if bindsLength <= 0 {
-		// No need to load the binds, there's none
-		return
-	}
-
-	for i, bind := range c.Server[0].Binds {
-		cfg.Server.Binds[i] = ServerBindConfig{
-			HostDir: bind.HostDir,
-			Volume:  bind.Volume,
+	if serverConfig != nil {
+		// Map the serverConfig
+		for i, bind := range c.Server.Binds {
+			cfg.Server.Binds[i] = ServerBindConfig{
+				HostDir: bind.HostDir,
+				Volume:  bind.Volume,
+			}
 		}
 	}
 
@@ -89,7 +85,7 @@ func InitializeConfig() (cfg Config, err error) {
 
 type config struct {
 	// Server as a struct array, making it optional
-	Server []struct {
+	Server *struct {
 		Binds []struct {
 			HostDir string `hcl:"host_dir"`
 			Volume  string `hcl:"volume"`
@@ -104,7 +100,7 @@ type config struct {
 // Config defines how the worker should run
 type Config struct {
 	// Servere defines default configuration for new servers created
-	Server ServerConfig
+	Server *ServerConfig
 
 	// PresetsFolder defines the folder to be used for server preset files.
 	PresetsFolder string
