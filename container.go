@@ -23,7 +23,8 @@ type Container interface {
 	Logger() *logrus.Logger
 }
 
-// ContainerStats holds the stats relative to a container at a point in time
+// ContainerStats holds the stats relative to a container
+// at a point in time.
 type ContainerStats struct {
 	// Percentage of CPU usage, sum of all cores
 	CPUPercentage float64 `json:"cpu_percentage"`

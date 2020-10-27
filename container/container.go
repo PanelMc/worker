@@ -18,9 +18,9 @@ import (
 type dockerContainer struct {
 	sync.Mutex
 
-	ContainerName    string
-	ContainerID string
-	status      worker.Status
+	ContainerName string
+	ContainerID   string
+	status        worker.Status
 
 	client    *client.Client
 	statsChan <-chan *worker.ContainerStats
@@ -39,28 +39,40 @@ func (c *dockerContainer) Status() worker.Status {
 var logger = logrus.WithField("context", "container").Logger
 
 // NewDockerContainer creates a new docker container using the given options
-func NewDockerContainer(opts worker.ContainerOptions) (worker.Container, error) {
+func NewDockerContainer(opts ...worker.ContainerOpts) (worker.Container, error) {
+	options := &worker.ContainerOptions{
+		ContainerName: "skywars-node",
+		Image:         "Test",
+		RAM:           "2gb",
+		Swap:          "2gb",
+		Ports:         []int{25565},
+	}
+
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, err
 	}
 
-	logger := logrus.WithField("container", opts.ContainerName).Logger
+	logger := logrus.WithField("container", options.ContainerName).Logger
 	container := &dockerContainer{
-		ContainerName: opts.ContainerName,
-		status:   worker.StatusStopped,
-		client:   cli,
-		logger:   logger,
+		ContainerName: options.ContainerName,
+		status:        worker.StatusStopped,
+		client:        cli,
+		logger:        logger,
 	}
 
 	ctx := context.TODO()
 
-	if err := prepare(ctx, container, &opts); err != nil {
+	if err := prepare(ctx, container, options); err != nil {
 		return nil, err
 	}
 
-	containerConfig := parseContainerConfig(opts.ContainerName, &opts)
-	containerHostConfig := parseHostConfig(opts.ContainerName, &opts)
+	containerConfig := parseContainerConfig(options.ContainerName, options)
+	containerHostConfig := parseHostConfig(options.ContainerName, options)
 
 	resContainer, err := cli.ContainerCreate(ctx, &containerConfig, &containerHostConfig, nil, containerConfig.Hostname)
 	if err != nil {
