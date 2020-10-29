@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ContainerOpts helps you easly to model the container options
+// ContainerOpts helps you to easily model the container options
 // according to your needs.
 type ContainerOpts func(*ContainerOptions)
 

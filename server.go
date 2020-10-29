@@ -33,3 +33,39 @@ const (
 func NewServer(container Container) (Server, error) {
 	return &server{container}, nil
 }
+
+// ServerCreateOptions holds information needed to create a new Server
+type ServerCreateOptions struct {
+	ServerID   string `hcl:"server_id"`
+	ServerName string `hcl:"server_name"`
+
+	// Binds defines wich volume binds to use.
+	Binds          []ServerBindConfig
+	ContainerImage *ContainerImageOptions `hcl:"container_image,block"`
+	Memory         *MemoryOptions         `hcl:"memory,block"`
+	Network        *NetworkOptions        `hcl:"network,block"`
+}
+
+type ContainerImageOptions struct {
+	ID string `hcl:"id"`
+}
+
+type MemoryOptions struct {
+	Limit string `hcl:"limit"`
+	Swap  string `hcl:"swap,optional"`
+}
+
+type NetworkOptions struct {
+	Expose []string `hcl:"expose,optional"`
+}
+
+// ServerBindConfig defines wich volume binds to use.
+type ServerBindConfig struct {
+	// HostDir defines where to bind the volume on the host machine.
+	HostDir string
+	// Volume defines the volume to be binded.
+	Volume string
+}
+
+// ServerPreset represents a preset to be used for Server creation
+type ServerPreset ServerCreateOptions
