@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
-func hclEnconde(cfg interface{}) []byte {
+func hclEncode(cfg interface{}) []byte {
 	block := gohcl.EncodeAsBlock(cfg, "")
 
 	f := hclwrite.NewEmptyFile()

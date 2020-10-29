@@ -99,7 +99,7 @@ type config struct {
 
 // Config defines how the worker should run
 type Config struct {
-	// Servere defines default configuration for new servers created
+	// Server defines default configuration for new servers created
 	Server *ServerConfig
 
 	// PresetsFolder defines the folder to be used for server preset files.
@@ -112,11 +112,11 @@ type Config struct {
 
 // ServerConfig defines default configuration for new servers created
 type ServerConfig struct {
-	// Binds defines wich volume binds to use.
+	// Binds defines which volume binds to use.
 	Binds []ServerBindConfig
 }
 
-// ServerBindConfig defines wich volume binds to use.
+// ServerBindConfig defines which volume binds to use.
 type ServerBindConfig struct {
 	// HostDir defines where to bind the volume on the host machine.
 	HostDir string

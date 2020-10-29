@@ -31,7 +31,7 @@ func SaveConfig(cfg interface{}, file string) (err error) {
 		return
 	}
 
-	err = ioutil.WriteFile(file, hclEnconde(cfg), 0777)
+	err = ioutil.WriteFile(file, hclEncode(cfg), 0777)
 	return
 }
 

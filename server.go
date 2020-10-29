@@ -25,7 +25,7 @@ const (
 	// This option can be omitted and passed directly to running if
 	// the server software in use is not supported.
 	StatusStarting Status = "starting"
-	// StatusStopping indicates the server is stopping, but not yet stopeed.
+	// StatusStopping indicates the server is stopping, but not yet stopped.
 	StatusStopping Status = "stopping"
 )
 
@@ -39,7 +39,7 @@ type ServerCreateOptions struct {
 	ServerID   string `hcl:"server_id"`
 	ServerName string `hcl:"server_name"`
 
-	// Binds defines wich volume binds to use.
+	// Binds defines which volume binds to use.
 	Binds          []ServerBindConfig
 	ContainerImage *ContainerImageOptions `hcl:"container_image,block"`
 	Memory         *MemoryOptions         `hcl:"memory,block"`
@@ -59,7 +59,7 @@ type NetworkOptions struct {
 	Expose []string `hcl:"expose,optional"`
 }
 
-// ServerBindConfig defines wich volume binds to use.
+// ServerBindConfig defines which volume binds to use.
 type ServerBindConfig struct {
 	// HostDir defines where to bind the volume on the host machine.
 	HostDir string
