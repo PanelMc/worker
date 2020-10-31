@@ -25,10 +25,10 @@ type dockerContainer struct {
 	client    *client.Client
 	statsChan <-chan *worker.ContainerStats
 
-	logger *logrus.Logger
+	logger *logrus.Entry
 }
 
-func (c *dockerContainer) Logger() *logrus.Logger {
+func (c *dockerContainer) Logger() *logrus.Entry {
 	return c.logger
 }
 
@@ -36,7 +36,7 @@ func (c *dockerContainer) Status() worker.Status {
 	return c.status
 }
 
-var logger = logrus.WithField("context", "container").Logger
+var logger = logrus.WithField("context", "container")
 
 // NewDockerContainer creates a new docker container using the given options
 func NewDockerContainer(opts ...worker.ContainerOpts) (worker.Container, error) {
@@ -64,7 +64,7 @@ func NewDockerContainer(opts ...worker.ContainerOpts) (worker.Container, error) 
 		return nil, err
 	}
 
-	logger := logrus.WithField("container", options.ContainerName).Logger
+	logger := logrus.WithField("container", options.ContainerName)
 	container := &dockerContainer{
 		ContainerName: options.ContainerName,
 		status:        worker.StatusStopped,
@@ -98,7 +98,7 @@ func prepare(ctx context.Context, container *dockerContainer, opts *worker.Conta
 	default:
 	}
 
-	container.logger.Debugln("Checking image for updates...")
+	container.Logger().Debugln("Checking image for updates...")
 	progress, err := pullImage(ctx, container, opts.Image)
 	if err != nil {
 		return fmt.Errorf("image pull error for '%s': %w", opts.Image, err)
@@ -112,9 +112,13 @@ func prepare(ctx context.Context, container *dockerContainer, opts *worker.Conta
 			return nil
 		case p, ok = <-progress:
 			if ok {
-				container.Logger().Debugf("Pulling progress: %d/%d - %s", p.ProgressDetail.Current, p.ProgressDetail.Total, p.Status)
+				if p.Progress != "" {
+					container.Logger().Debugf("Pulling progress: %s | %s", p.Status, p.Progress)
+				} else {
+					container.Logger().Debugf("Pulling progress: %s", p.Status)
 			}
 		}
+	}
 	}
 
 	// Return error from last message if present

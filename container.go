@@ -20,7 +20,7 @@ type Container interface {
 	Status() Status
 	// Logger returns the logger used by the server
 	// logs sent here, will be redirected to the container stdout
-	Logger() *logrus.Logger
+	Logger() *logrus.Entry
 }
 
 // ContainerStats holds the stats relative to a container
