@@ -40,10 +40,10 @@ type ServerCreateOptions struct {
 	ServerName string `hcl:"server_name"`
 
 	// Binds defines which volume binds to use.
-	Binds          []ContainerBind
-	ContainerImage *ContainerImage `hcl:"container_image,block"`
-	Memory         *ContainerMemory         `hcl:"memory,block"`
-	Network        *ContainerNetwork        `hcl:"network,block"`
+	Binds          []ContainerBind   `hcl:"bind,block"`
+	ContainerImage *ContainerImage   `hcl:"container_image,block"`
+	Memory         *ContainerMemory  `hcl:"memory,block"`
+	Network        *ContainerNetwork `hcl:"network,block"`
 }
 
 // ServerPreset represents a preset to be used for Server creation
