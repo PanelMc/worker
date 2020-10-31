@@ -47,9 +47,30 @@ type ContainerStats struct {
 
 // ContainerOptions holds the options used to create a new container
 type ContainerOptions struct {
-	ContainerName string `json:"container_name,omitempty"`
-	Image         string `json:"image,omitempty"`
-	RAM           string `json:"ram,omitempty"`
-	Swap          string `json:"swap,omitempty"`
-	Ports         []int  `json:"ports,omitempty"`
+	ContainerName  string `json:"container_name,omitempty"`
+	Binds          []ContainerBind
+	Image ContainerImage    `json:"container_image"`
+	Memory         ContainerMemory   `json:"memory"`
+	Network        *ContainerNetwork `json:"network,omitempty"`
+}
+
+type ContainerImage struct {
+	ID string `hcl:"id" json:"id"`
+}
+
+type ContainerMemory struct {
+	Limit string `hcl:"limit" json:"limit"`
+	Swap  string `hcl:"swap,optional" json:"swap"`
+}
+
+type ContainerNetwork struct {
+	Expose []string `hcl:"expose,optional" json:"expose"`
+}
+
+// ContainerBind defines which volume binds to use.
+type ContainerBind struct {
+	// HostDir defines where to bind the volume on the host machine.
+	HostDir string `hcl:"host_dir" json:"host_dir,omitempty"`
+	// Volume defines the volume to be binded.
+	Volume string `hcl:"volume,optional" json:"volume"`
 }

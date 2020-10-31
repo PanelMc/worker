@@ -1,10 +1,7 @@
 package worker
 
 import (
-	"strconv"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 // ContainerOpts helps you to easily model the container options
@@ -19,39 +16,25 @@ func WithPreset(preset ServerPreset) ContainerOpts {
 		}
 
 		if preset.ContainerImage != nil {
-			cImage := strings.TrimSpace(preset.ContainerImage.ID)
-			if cImage != "" {
-				co.Image = cImage
-			}
+			co.Image = *preset.ContainerImage
 		}
 
 		if preset.Memory != nil {
-			cMem := strings.TrimSpace(preset.Memory.Limit)
-			if cMem != "" {
-				co.RAM = cMem
+			if preset.Memory.Limit != "" {
+				co.Memory.Limit = preset.Memory.Limit
 			}
 
-			cSwap := strings.TrimSpace(preset.Memory.Swap)
-			if cSwap != "" {
-				co.Swap = cSwap
+			if preset.Memory.Swap != "" {
+				co.Memory.Swap = preset.Memory.Swap
 			}
 		}
 
 		if preset.Network != nil {
-			cExpose := preset.Network.Expose
-			exposeLen := len(cExpose)
-			if exposeLen > 0 {
-				for _, e := range cExpose {
-					port := e[strings.IndexRune(e, ':'):]
-					p, err := strconv.Atoi(port)
-					if err != nil {
-						logrus.Warnf("Failed to parse the port %s to integer! (source: %s)", port, e)
-						continue
-					}
+			co.Network = preset.Network
+		}
 
-					co.Ports = append(co.Ports, p)
-				}
-			}
+		if len(preset.Binds) > 0 {
+			co.Binds = preset.Binds
 		}
 	}
 }

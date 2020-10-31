@@ -3,6 +3,7 @@ package infra
 import (
 	"os"
 
+	"github.com/PanelMc/worker"
 	"github.com/PanelMc/worker/io"
 	"github.com/sirupsen/logrus"
 
@@ -29,15 +30,9 @@ func InitializeConfig() (cfg Config, err error) {
 
 		err = io.SaveConfig(config{
 			Server: &struct {
-				Binds []struct {
-					HostDir string "hcl:\"host_dir\""
-					Volume  string "hcl:\"volume\""
-				} "hcl:\"bind,block\""
+				Binds []worker.ContainerBind "hcl:\"bind,block\""
 			}{
-				Binds: []struct {
-					HostDir string "hcl:\"host_dir\""
-					Volume  string "hcl:\"volume\""
-				}{
+				Binds: []worker.ContainerBind{
 					{
 						HostDir: "/etc/worker/%s/data/",
 						Volume:  "/data",
@@ -58,7 +53,7 @@ func InitializeConfig() (cfg Config, err error) {
 	var serverConfig *ServerConfig
 	if c.Server != nil {
 		serverConfig = &ServerConfig{
-			Binds: make([]ServerBindConfig, len(c.Server.Binds)),
+			Binds: make([]worker.ContainerBind, len(c.Server.Binds)),
 		}
 	}
 
@@ -73,7 +68,7 @@ func InitializeConfig() (cfg Config, err error) {
 	if serverConfig != nil {
 		// Map the serverConfig
 		for i, bind := range c.Server.Binds {
-			cfg.Server.Binds[i] = ServerBindConfig{
+			cfg.Server.Binds[i] = worker.ContainerBind{
 				HostDir: bind.HostDir,
 				Volume:  bind.Volume,
 			}
@@ -86,10 +81,7 @@ func InitializeConfig() (cfg Config, err error) {
 type config struct {
 	// Server as a struct array, making it optional
 	Server *struct {
-		Binds []struct {
-			HostDir string `hcl:"host_dir"`
-			Volume  string `hcl:"volume"`
-		} `hcl:"bind,block"`
+		Binds []worker.ContainerBind `hcl:"bind,block"`
 	} `hcl:"server,block"`
 
 	PresetsFolder     string      `hcl:"presets_folder"`
@@ -113,7 +105,7 @@ type Config struct {
 // ServerConfig defines default configuration for new servers created
 type ServerConfig struct {
 	// Binds defines which volume binds to use.
-	Binds []ServerBindConfig
+	Binds []worker.ContainerBind
 }
 
 // ServerBindConfig defines which volume binds to use.

@@ -41,11 +41,18 @@ var logger = logrus.WithField("context", "container").Logger
 // NewDockerContainer creates a new docker container using the given options
 func NewDockerContainer(opts ...worker.ContainerOpts) (worker.Container, error) {
 	options := &worker.ContainerOptions{
-		ContainerName: "skywars-node",
-		Image:         "Test",
-		RAM:           "2gb",
-		Swap:          "2gb",
-		Ports:         []int{25565},
+		ContainerName: "minecraft",
+		Image: worker.ContainerImage{
+			ID: "itzg/minecraft-server",
+		},
+		Memory: worker.ContainerMemory{
+			Limit: "1GB",
+			Swap:  "1GB",
+		},
+		Binds: make([]worker.ContainerBind, 0),
+		Network: &worker.ContainerNetwork{
+			Expose: make([]string, 0),
+		},
 	}
 
 	for _, opt := range opts {
@@ -119,14 +126,13 @@ func prepare(ctx context.Context, container *dockerContainer, opts *worker.Conta
 }
 
 func parseContainerConfig(serverID string, opts *worker.ContainerOptions) container.Config {
-	portSet := nat.PortSet{}
-	for _, p := range opts.Ports {
-		port := nat.Port(fmt.Sprintf("%d/%s", p, "tcp"))
-		portSet[port] = struct{}{}
+	portSet, _, err := nat.ParsePortSpecs(opts.Network.Expose)
+	if err != nil {
+		portSet = make(map[nat.Port]struct{}, 0)
 	}
 
 	containerConfig := container.Config{
-		Image:        opts.Image,
+		Image:        opts.Image.ID,
 		AttachStdin:  true,
 		OpenStdin:    true,
 		AttachStdout: true,
@@ -150,10 +156,9 @@ func parseContainerConfig(serverID string, opts *worker.ContainerOptions) contai
 }
 
 func parseHostConfig(serverID string, opts *worker.ContainerOptions) container.HostConfig {
-	portMap := nat.PortMap{}
-	for _, p := range opts.Ports {
-		port := nat.Port(fmt.Sprintf("%d/%s", p, "tcp"))
-		portMap[port] = []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", p)}}
+	_, portMap, err := nat.ParsePortSpecs(opts.Network.Expose)
+	if err != nil {
+		portMap = make(map[nat.Port][]nat.PortBinding)
 	}
 
 	// fix windows path
@@ -163,12 +168,12 @@ func parseHostConfig(serverID string, opts *worker.ContainerOptions) container.H
 	// point to `/data` volume
 	path += ":/data"
 
-	memory, err := bytefmt.ToBytes(opts.RAM)
+	memory, err := bytefmt.ToBytes(opts.Memory.Limit)
 	if err != nil {
 		logrus.Error("Failed to read server RAM, using default(1 Gigabyte).")
 		memory = 1073741824 // 1GB Default
 	}
-	swap, err := bytefmt.ToBytes(opts.Swap)
+	swap, err := bytefmt.ToBytes(opts.Memory.Swap)
 	if err != nil {
 		logrus.Error("Failed to read server Swap, using default(1 Gigabyte).")
 		swap = 1073741824 // 1GB Default

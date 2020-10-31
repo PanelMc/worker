@@ -40,31 +40,10 @@ type ServerCreateOptions struct {
 	ServerName string `hcl:"server_name"`
 
 	// Binds defines which volume binds to use.
-	Binds          []ServerBindConfig
-	ContainerImage *ContainerImageOptions `hcl:"container_image,block"`
-	Memory         *MemoryOptions         `hcl:"memory,block"`
-	Network        *NetworkOptions        `hcl:"network,block"`
-}
-
-type ContainerImageOptions struct {
-	ID string `hcl:"id"`
-}
-
-type MemoryOptions struct {
-	Limit string `hcl:"limit"`
-	Swap  string `hcl:"swap,optional"`
-}
-
-type NetworkOptions struct {
-	Expose []string `hcl:"expose,optional"`
-}
-
-// ServerBindConfig defines which volume binds to use.
-type ServerBindConfig struct {
-	// HostDir defines where to bind the volume on the host machine.
-	HostDir string
-	// Volume defines the volume to be binded.
-	Volume string
+	Binds          []ContainerBind
+	ContainerImage *ContainerImage `hcl:"container_image,block"`
+	Memory         *ContainerMemory         `hcl:"memory,block"`
+	Network        *ContainerNetwork        `hcl:"network,block"`
 }
 
 // ServerPreset represents a preset to be used for Server creation
