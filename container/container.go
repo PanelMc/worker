@@ -18,6 +18,8 @@ import (
 type dockerContainer struct {
 	sync.Mutex
 
+	// ContainerName is a unique, user readable, identifier
+	// of the container.
 	ContainerName string
 	ContainerID   string
 	status        worker.Status
@@ -78,8 +80,8 @@ func NewDockerContainer(opts ...worker.ContainerOpts) (worker.Container, error) 
 		return nil, err
 	}
 
-	containerConfig := parseContainerConfig(options.ContainerName, options)
-	containerHostConfig := parseHostConfig(options.ContainerName, options)
+	containerConfig := parseContainerConfig(container, options)
+	containerHostConfig := parseHostConfig(container, options)
 
 	resContainer, err := cli.ContainerCreate(ctx, &containerConfig, &containerHostConfig, nil, containerConfig.Hostname)
 	if err != nil {
@@ -116,9 +118,9 @@ func prepare(ctx context.Context, container *dockerContainer, opts *worker.Conta
 					container.Logger().Debugf("Pulling progress: %s | %s", p.Status, p.Progress)
 				} else {
 					container.Logger().Debugf("Pulling progress: %s", p.Status)
+				}
 			}
 		}
-	}
 	}
 
 	// Return error from last message if present
@@ -129,11 +131,13 @@ func prepare(ctx context.Context, container *dockerContainer, opts *worker.Conta
 	return nil
 }
 
-func parseContainerConfig(serverID string, opts *worker.ContainerOptions) container.Config {
+func parseContainerConfig(c *dockerContainer, opts *worker.ContainerOptions) container.Config {
 	portSet, _, err := nat.ParsePortSpecs(opts.Network.Expose)
 	if err != nil {
-		portSet = make(map[nat.Port]struct{}, 0)
+		portSet = make(map[nat.Port]struct{})
 	}
+
+	volumes, _ := parseVolumeBinds(c, opts.Binds)
 
 	containerConfig := container.Config{
 		Image:        opts.Image.ID,
@@ -142,11 +146,9 @@ func parseContainerConfig(serverID string, opts *worker.ContainerOptions) contai
 		AttachStdout: true,
 		AttachStderr: true,
 		Tty:          true,
-		Hostname:     "daemon-" + serverID,
+		Hostname:     "daemon-" + c.ContainerName,
 		ExposedPorts: portSet,
-		Volumes: map[string]struct{}{
-			"/data": {},
-		},
+		Volumes:      volumes,
 		Env: []string{
 			"EULA=TRUE",
 			"PAPER_DOWNLOAD_URL=https://heroslender.com/assets/PaperSpigot-1.8.8.jar",
@@ -159,27 +161,22 @@ func parseContainerConfig(serverID string, opts *worker.ContainerOptions) contai
 	return containerConfig
 }
 
-func parseHostConfig(serverID string, opts *worker.ContainerOptions) container.HostConfig {
+func parseHostConfig(c *dockerContainer, opts *worker.ContainerOptions) container.HostConfig {
 	_, portMap, err := nat.ParsePortSpecs(opts.Network.Expose)
 	if err != nil {
 		portMap = make(map[nat.Port][]nat.PortBinding)
 	}
 
-	// fix windows path
-	// path := strings.Replace(c.server.DataPath(), "C:\\", "/c/", 1)
-	path := "/home/heroslender/projects/PanelMc/worker/" + serverID
-	path = strings.Replace(path, "\\", "/", -1)
-	// point to `/data` volume
-	path += ":/data"
+	_, binds := parseVolumeBinds(c, opts.Binds)
 
 	memory, err := bytefmt.ToBytes(opts.Memory.Limit)
 	if err != nil {
-		logrus.Error("Failed to read server RAM, using default(1 Gigabyte).")
+		c.Logger().Error("Failed to read server RAM, using default(1 Gigabyte).")
 		memory = 1073741824 // 1GB Default
 	}
 	swap, err := bytefmt.ToBytes(opts.Memory.Swap)
 	if err != nil {
-		logrus.Error("Failed to read server Swap, using default(1 Gigabyte).")
+		c.Logger().Error("Failed to read server Swap, using default(1 Gigabyte).")
 		swap = 1073741824 // 1GB Default
 	}
 
@@ -188,9 +185,36 @@ func parseHostConfig(serverID string, opts *worker.ContainerOptions) container.H
 			Memory:     int64(memory),
 			MemorySwap: int64(swap),
 		},
-		Binds:        []string{path},
+		Binds:        binds,
 		PortBindings: portMap,
 	}
 
 	return containerHostConfig
+}
+
+func parseVolumeBinds(c *dockerContainer, binds []worker.ContainerBind) (map[string]struct{}, []string) {
+	var (
+		volumes  = make(map[string]struct{})
+		bindings = make([]string, 0)
+	)
+
+	for _, bind := range binds {
+		bind.HostDir = strings.ReplaceAll(bind.HostDir, "{id}", c.ContainerName)
+		volumes[bind.Volume] = struct{}{}
+		binding := fmt.Sprintf("%s:%s", bind.HostDir, bind.Volume)
+
+		var contains bool
+		for _, b := range bindings {
+			if b == binding {
+				contains = true
+				break
+			}
+		}
+
+		if !contains {
+			bindings = append(bindings, binding)
+		}
+	}
+
+	return volumes, bindings
 }
