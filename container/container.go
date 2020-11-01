@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 
@@ -53,7 +54,7 @@ func NewDockerContainer(opts ...worker.ContainerOpts) (worker.Container, error) 
 		},
 		Binds: make([]worker.ContainerBind, 0),
 		Network: &worker.ContainerNetwork{
-			Expose: make([]string, 0),
+			Binds: make([]worker.ContainerNetworkBind, 0),
 		},
 	}
 
@@ -132,8 +133,9 @@ func prepare(ctx context.Context, container *dockerContainer, opts *worker.Conta
 }
 
 func parseContainerConfig(c *dockerContainer, opts *worker.ContainerOptions) container.Config {
-	portSet, _, err := nat.ParsePortSpecs(opts.Network.Expose)
+	portSet, _, err := parsePortSpecs(opts.Network.Binds)
 	if err != nil {
+		c.Logger().Errorf("Error parsing the container ports: %s", err)
 		portSet = make(map[nat.Port]struct{})
 	}
 
@@ -162,8 +164,9 @@ func parseContainerConfig(c *dockerContainer, opts *worker.ContainerOptions) con
 }
 
 func parseHostConfig(c *dockerContainer, opts *worker.ContainerOptions) container.HostConfig {
-	_, portMap, err := nat.ParsePortSpecs(opts.Network.Expose)
+	_, portMap, err := parsePortSpecs(opts.Network.Binds)
 	if err != nil {
+		c.Logger().Errorf("Error parsing the container ports: %s", err)
 		portMap = make(map[nat.Port][]nat.PortBinding)
 	}
 
@@ -190,6 +193,101 @@ func parseHostConfig(c *dockerContainer, opts *worker.ContainerOptions) containe
 	}
 
 	return containerHostConfig
+}
+
+func parsePortSpecs(portBinds []worker.ContainerNetworkBind) (nat.PortSet, nat.PortMap, error) {
+	var (
+		exposedPorts = make(nat.PortSet)
+		bindings     = make(nat.PortMap)
+	)
+
+	for _, rawPort := range portBinds {
+		portMappings, err := parsePortSpec(rawPort)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		for _, portMapping := range portMappings {
+			port := portMapping.Port
+			if _, exists := exposedPorts[port]; !exists {
+				exposedPorts[port] = struct{}{}
+			}
+			bSlice, exists := bindings[port]
+			if !exists {
+				bSlice = []nat.PortBinding{}
+			}
+			bindings[port] = append(bSlice, portMapping.Binding)
+		}
+	}
+
+	logrus.Infof("Ports: %#v", bindings)
+	return exposedPorts, bindings, nil
+}
+
+func parsePortSpec(portBind worker.ContainerNetworkBind) ([]nat.PortMapping, error) {
+	hostIP, hostPort := splitIPPort(portBind.Addr)
+	hostIP, err := parseIP(hostIP)
+	if err != nil {
+		return nil, err
+	}
+
+	if hostPort == "" {
+		return nil, errors.New("undefined port for bind")
+	}
+
+	cPort := portBind.Private
+	if cPort == "" {
+		cPort = hostPort
+	}
+
+	cProto := portBind.Proto
+	if cProto == "" {
+		cProto = "tcp"
+	}
+
+	port, err := nat.NewPort(cProto, cPort)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO port ranges
+	return []nat.PortMapping{
+		{
+			Port: port,
+			Binding: nat.PortBinding{
+				HostIP:   hostIP,
+				HostPort: hostPort,
+			},
+		},
+	}, nil
+}
+
+func parseIP(rawIP string) (string, error) {
+	// Strip [] from IPV6 addresses
+	ip, _, err := net.SplitHostPort(rawIP + ":")
+	if err != nil {
+		return "", fmt.Errorf("invalid ip address %v: %s", rawIP, err)
+	}
+	if ip != "" && net.ParseIP(ip) == nil {
+		return "", fmt.Errorf("invalid ip address: %s", ip)
+	}
+
+	return ip, nil
+}
+
+func splitIPPort(rawIP string) (string, string) {
+	parts := strings.Split(rawIP, ":")
+	length := len(parts)
+
+	switch length {
+	case 1:
+		return "", parts[0]
+	case 2:
+		return parts[0], parts[1]
+	default:
+		// IPV6
+		return strings.Join(parts[:length-1], ":"), parts[length-1]
+	}
 }
 
 func parseVolumeBinds(c *dockerContainer, binds []worker.ContainerBind) (map[string]struct{}, []string) {

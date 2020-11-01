@@ -47,11 +47,11 @@ type ContainerStats struct {
 
 // ContainerOptions holds the options used to create a new container
 type ContainerOptions struct {
-	ContainerName  string `json:"container_name,omitempty"`
-	Binds          []ContainerBind
-	Image ContainerImage    `json:"container_image"`
-	Memory         ContainerMemory   `json:"memory"`
-	Network        *ContainerNetwork `json:"network,omitempty"`
+	ContainerName string `json:"container_name,omitempty"`
+	Binds         []ContainerBind
+	Image         ContainerImage    `json:"container_image"`
+	Memory        ContainerMemory   `json:"memory"`
+	Network       *ContainerNetwork `json:"network,omitempty"`
 }
 
 type ContainerImage struct {
@@ -64,7 +64,13 @@ type ContainerMemory struct {
 }
 
 type ContainerNetwork struct {
-	Expose []string `hcl:"expose,optional" json:"expose"`
+	Binds []ContainerNetworkBind `hcl:"bind,block" json:"expose"`
+}
+
+type ContainerNetworkBind struct {
+	Addr    string `hcl:"address,label" json:"address"`
+	Private string `hcl:"private,optional" json:"private,omitempty"`
+	Proto   string `hcl:"protocol,optional" json:"protocol,omitempty"`
 }
 
 // ContainerBind defines which volume binds to use.
